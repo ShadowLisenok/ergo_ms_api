@@ -183,22 +183,31 @@ class UserRegistrationView(BaseAPIView):
         },
     )
     def post(self, request):
-        serializer = UserRegistrationSerializer(data=request.data)
-
-        if serializer.is_valid():
-            User.objects.create_superuser(username=serializer.validated_data['username'], email= serializer.validated_data['email'], password= serializer.validated_data['password']).save()
-
-            successful_response = Response(
-                {"message": "Регистрация успешна."}, 
-                status=status.HTTP_200_OK
+        url_id = request.GET.get('url_id')
+        if url_id is not None and auth_urls.objects.filter(is_active = True, url_id = url_id).exists():
+            serializer = UserRegistrationSerializer(data=request.data)
+            print("gfdgdf")
+            if serializer.is_valid():
+                if User.objects.filter(is_superuser = True).exists():
+                    User.objects.create_superuser(username=serializer.validated_data['username'], email= serializer.validated_data['email'], password= serializer.validated_data['password']).save()
+                else:
+                    User.objects.create_user(username=serializer.validated_data['username'], email= serializer.validated_data['email'], password= serializer.validated_data['password']).save()
+                successful_response = Response(
+                    {"message": "Регистрация успешна."}, 
+                    status=status.HTTP_200_OK
+                )
+                return successful_response
+            errors = parse_errors_to_dict(serializer.errors)
+            return Response(
+                errors, 
+                status=status.HTTP_400_BAD_REQUEST
             )
-            return successful_response
-
-        errors = parse_errors_to_dict(serializer.errors)
-        return Response(
-            errors, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response( 
+                    {
+                        "message": "Ссылка недействительна!"
+                    },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class UserAuthorizationView(BaseAPIView):
     @swagger_auto_schema(
