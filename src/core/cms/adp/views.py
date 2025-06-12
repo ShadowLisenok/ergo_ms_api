@@ -186,7 +186,6 @@ class UserRegistrationView(BaseAPIView):
         url_id = request.GET.get('url_id')
         if url_id is not None and auth_urls.objects.filter(is_active = True, url_id = url_id).exists():
             serializer = UserRegistrationSerializer(data=request.data)
-            print("gfdgdf")
             if serializer.is_valid():
                 if User.objects.filter(is_superuser = True).exists():
                     User.objects.create_superuser(username=serializer.validated_data['username'], email= serializer.validated_data['email'], password= serializer.validated_data['password']).save()
