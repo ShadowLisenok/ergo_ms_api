@@ -183,31 +183,30 @@ class UserRegistrationView(BaseAPIView):
         },
     )
     def post(self, request):
-        url_id = request.GET.get('url_id')
-        if url_id is not None and auth_urls.objects.filter(is_active = True, url_id = url_id).exists():
-            serializer = UserRegistrationSerializer(data=request.data)
-            if serializer.is_valid():
-                if User.objects.filter(is_superuser = True).exists():
-                    User.objects.create_superuser(username=serializer.validated_data['username'], email= serializer.validated_data['email'], password= serializer.validated_data['password']).save()
-                else:
-                    User.objects.create_user(username=serializer.validated_data['username'], email= serializer.validated_data['email'], password= serializer.validated_data['password']).save()
-                successful_response = Response(
-                    {"message": "Регистрация успешна."}, 
-                    status=status.HTTP_200_OK
-                )
-                return successful_response
-            errors = parse_errors_to_dict(serializer.errors)
-            return Response(
-                errors, 
-                status=status.HTTP_400_BAD_REQUEST
+        url_id = request.data.get('url_id')
+        serializer = UserRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            if User.objects.filter(is_superuser = True).exists():
+                User.objects.create_user(username=serializer.validated_data['username'], email= serializer.validated_data['email'], password= serializer.validated_data['password']).save()
+                if GroupURL.objects.filter(url = 'http://localhost:8001/register?url_id=' + url_id):
+                    new_user = User.objects.get(username = serializer.validated_data['username'])
+                    group_url = GroupURL.objects.get(url = 'http://localhost:8001/register?url_id=' + url_id)
+                    group = group_url.group_id
+                    new_user.groups.add(group)
+            else:
+                User.objects.create_superuser(username=serializer.validated_data['username'], email= serializer.validated_data['email'], password= serializer.validated_data['password']).save()
+            successful_response = Response(
+                {"message": "Регистрация успешна."}, 
+                status=status.HTTP_200_OK
             )
-        return Response( 
-                    {
-                        "message": "Ссылка недействительна!"
-                    },
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return successful_response
 
+        errors = parse_errors_to_dict(serializer.errors)
+        return Response(
+            errors, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+        
 class UserAuthorizationView(BaseAPIView):
     @swagger_auto_schema(
         operation_description="Авторизация пользователя.",

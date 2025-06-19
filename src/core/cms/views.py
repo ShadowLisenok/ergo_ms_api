@@ -200,6 +200,8 @@ class AddGroup(BaseAPIView):
             catg = GroupCategory.objects.get(name = request.data['category_name'])
             g = Group.objects.create(name= request.data['group_name'])
             ExpandedGroup.objects.create(group=g, category = catg, level = request.data['level'])
+            url = 'http://localhost:8001/register?url_id=' + random_uuid
+            GroupURL.objects.create(url = url, group_id = g)
             return Response(
                 status=status.HTTP_200_OK
             )
